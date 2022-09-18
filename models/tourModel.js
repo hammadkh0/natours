@@ -9,6 +9,7 @@ const tourSchema = new mongoose.Schema(
       required: [true, 'A tour must have a name'],
       unique: true,
       trim: true,
+      minlength: [10, 'A tour name must have equal or more than 10 characters'],
       // validate: [validator.isAlpha, 'Tour name must only contain letters'],
     },
     slug: String,
@@ -114,6 +115,10 @@ tourSchema.post(/^find/, function (docs, next) {
 
 // AGGREGATION MIDDLEWARE
 tourSchema.pre('aggregate', function (next) {
+  /*
+   Add a $match that selects document that do not have a secret Tour to the aggragation pipeline. This will then be executed along with other $match and $group etc in the aggregate functions defined in the controller. 
+   This was done to avoid repition of the same code in all aggregation functions. 
+  */
   this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
   next();
 });
