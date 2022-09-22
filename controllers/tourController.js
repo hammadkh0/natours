@@ -14,6 +14,7 @@ exports.getTours = catchAsync(async (req, res, next) => {
   // -- BUILD QUERY --//
 
   const features = new APIFeatures(Tour.find(), req.query).filter().sort().limitFields().paginate();
+  // Tour.find() will populate the tour with the user{guide} with the help of pre find middleware
 
   // localhost:8000/tours?fields=name,desciption&sort=price
   // {fields: name,description}
@@ -35,7 +36,8 @@ exports.getTours = catchAsync(async (req, res, next) => {
   });
 });
 exports.getTourById = catchAsync(async (req, res, next) => {
-  const tour = await Tour.findById(req.params.id);
+  const tour = await Tour.findById(req.params.id).populate('reviews');
+  // .populate('guide').populate('reviews') => in the pre find middleware
   if (!tour) {
     return next(new HttpError('Could not find a tour for the provided id', 404));
   }

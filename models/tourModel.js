@@ -76,6 +76,35 @@ const tourSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    startLocation: {
+      type: {
+        type: String,
+        default: 'Point',
+        enum: ['Point'],
+      },
+      coordinates: [Number],
+      address: String,
+      description: String,
+    },
+    locations: [
+      {
+        type: {
+          type: String,
+          default: 'Point',
+          enum: ['Point'],
+        },
+        coordinates: [Number],
+        address: String,
+        description: String,
+        day: Number,
+      },
+    ],
+    guides: [
+      {
+        type: mongoose.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
   },
   { toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
@@ -83,11 +112,34 @@ tourSchema.virtual('durationWeeks').get(function () {
   return Math.floor(this.duration / 7);
 });
 
+/*
+  virtual populate.
+
+  It will populate the tours with the reviews from review Model but will not store the reviews or reviewIds in the database. Thus removing the storage problem.
+  * We are using virtual because if we actually tried storing reviews or reviewIds in the tour documents, then there could be infinite reviews to a tour and that would break the 16MB limit of data stored in a single document.
+
+  ref => The key that is used to create a refrence between the 2 Models (Tour and Review). Tour will store the review refrence (only virtually). 
+  localField => The primary key in the tour Model that is used to refrence the tours in the review Model.
+  foreignField => The name of the foreign key in the review Model that is primary key in the tour Model.
+    Review will have a tour field that will store the tour id(_id) {actually stored ids in the db }.
+*/
+
+tourSchema.virtual('reviews', {
+  ref: 'Review',
+  foreignField: 'tour',
+  localField: '_id',
+});
+
 // DOCUMENT MIDDLEWARE
 // that runs before .save() or .create(). Can have multiple pre or post middleware
 tourSchema.pre('save', function (next) {
   // console.log(this);
   this.slug = slugify(this.name, { lower: true });
+  next();
+});
+tourSchema.pre(/^find/, function (next) {
+  // console.log(this);
+  this.populate({ path: 'guides', select: '-__v -passwordChangedAt' });
   next();
 });
 
